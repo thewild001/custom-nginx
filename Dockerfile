@@ -1,0 +1,113 @@
+FROM ubuntu:22.04
+
+# Variables
+ENV NGINX_VERSION=1.24.0 \
+    NGINX_USER=nginx \
+    DEBIAN_FRONTEND=noninteractive
+
+# Instalación de dependencias
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libpcre3 libpcre3-dev \
+        zlib1g zlib1g-dev \
+        libssl-dev \
+        libxml2 libxml2-dev \
+        libxslt1-dev \
+        libgd-dev \
+        libgeoip-dev \
+        libpam0g-dev \
+        libexpat1-dev \
+        wget \
+        curl \
+        ca-certificates \
+        git \
+        unzip \
+        libjpeg-dev \
+        libpng-dev \
+        libxslt1.1 \
+        libxslt1-dev \
+        libperl-dev \
+        libluajit-5.1-dev \
+        libatomic-ops-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Crear usuario nginx
+RUN useradd -r -d /var/cache/nginx -s /sbin/nologin $NGINX_USER
+
+# Descargar código fuente de nginx y módulos
+WORKDIR /usr/local/src
+
+RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
+    git clone https://github.com/arut/nginx-dav-ext-module.git && \
+    git clone https://github.com/stogh/ngx_http_auth_pam_module.git && \
+    git clone https://github.com/openresty/echo-nginx-module.git && \
+    git clone https://github.com/openresty/memc-nginx-module.git && \
+    git clone https://github.com/openresty/srcache-nginx-module.git && \
+    git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git && \
+    git clone https://github.com/gnosek/nginx-upstream-fair.git
+
+# Configurar, compilar e instalar Nginx con los módulos
+WORKDIR /usr/local/src/nginx-${NGINX_VERSION}
+
+RUN ./configure \
+    --prefix=/etc/nginx \
+    --sbin-path=/usr/sbin/nginx \
+    --modules-path=/usr/lib/nginx/modules \
+    --conf-path=/etc/nginx/nginx.conf \
+    --error-log-path=/var/log/nginx/error.log \
+    --http-log-path=/var/log/nginx/access.log \
+    --pid-path=/var/run/nginx.pid \
+    --lock-path=/var/run/nginx.lock \
+    --user=$NGINX_USER \
+    --group=$NGINX_USER \
+    --with-http_ssl_module \
+    --with-http_v2_module \
+    --with-http_realip_module \
+    --with-http_addition_module \
+    --with-http_sub_module \
+    --with-http_dav_module \
+    --with-http_flv_module \
+    --with-http_mp4_module \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_auth_request_module \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_degradation_module \
+    --with-http_slice_module \
+    --with-http_stub_status_module \
+    --with-mail \
+    --with-mail_ssl_module \
+    --with-stream \
+    --with-stream_ssl_module \
+    --with-stream_realip_module \
+    --with-threads \
+    --add-module=../nginx-dav-ext-module \
+    --add-module=../ngx_http_auth_pam_module \
+    --add-module=../echo-nginx-module \
+    --add-module=../ngx_http_substitutions_filter_module \
+    --add-module=../nginx-upstream-fair \
+    --with-http_geoip_module \
+    --with-http_image_filter_module \
+    --with-http_xslt_module \
+    --with-cc-opt='-O2' \
+    --with-ld-opt='-Wl,-z,relro,-z,now -pie' && \
+    make -j$(nproc) && \
+    make install
+
+# Cleanup
+RUN rm -rf /usr/local/src/* && \
+    apt-get purge -y build-essential git wget unzip && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Crear directorios necesarios
+RUN mkdir -p /var/cache/nginx /var/log/nginx && \
+    chown -R $NGINX_USER:$NGINX_USER /var/cache/nginx /var/log/nginx
+
+EXPOSE 80 443
+
+CMD ["nginx", "-g", "daemon off;"]
