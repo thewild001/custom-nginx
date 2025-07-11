@@ -35,7 +35,7 @@ RUN apt-get update && \
 # Crear usuario nginx
 RUN useradd -r -d /var/cache/nginx -s /sbin/nologin $NGINX_USER
 
-# Descargar código fuente de nginx y módulos
+# Descargar código fuente de Nginx y módulos externos
 WORKDIR /usr/local/src
 
 RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
@@ -48,7 +48,13 @@ RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git && \
     git clone https://github.com/gnosek/nginx-upstream-fair.git
 
-# Configurar, compilar e instalar Nginx con los módulos
+# Parche para nginx-upstream-fair: eliminar referencias a default_port
+RUN sed -i \
+      -e 's/if (us->port == 0 && us->default_port == 0)/if (us->port == 0)/' \
+      -e 's/us->port ? us->port : us->default_port/us->port/' \
+      /usr/local/src/nginx-upstream-fair/ngx_http_upstream_fair_module.c
+
+# Compilar e instalar Nginx con todos los módulos
 WORKDIR /usr/local/src/nginx-${NGINX_VERSION}
 
 RUN ./configure \
@@ -97,14 +103,14 @@ RUN ./configure \
     make -j$(nproc) && \
     make install
 
-# Cleanup
+# Cleanup: remover fuentes y deps de build
 RUN rm -rf /usr/local/src/* && \
     apt-get purge -y build-essential git wget unzip && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Crear directorios necesarios
+# Crear directorios de runtime
 RUN mkdir -p /var/cache/nginx /var/log/nginx && \
     chown -R $NGINX_USER:$NGINX_USER /var/cache/nginx /var/log/nginx
 
