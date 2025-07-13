@@ -7,7 +7,10 @@ ENV APP_HOME /var/www/html
 ENV COMPOSER_DEPS_PATH /tmp/composer_deps
 
 # Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y --no-install-recommends --allow-remove-essential \
+RUN apt-get clean && \
+apt-get update --fix-missing && \
+apt-get install -f && \
+apt-get install -y --no-install-recommends --allow-remove-essential \
     openssh-client \
     gettext \
     nano \
