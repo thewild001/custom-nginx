@@ -1,0 +1,37 @@
+services:
+  # Servicio PHP-FPM
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html  # Comparte todo el código con PHP-FPM
+    networks:
+      - app-network
+
+  # Servicio Nginx con Lua y Redis
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    restart: unless-stopped
+    ports:
+      - "5925:80"
+    depends_on:
+      - php
+      - redis
+    networks:
+      - app-network
+
+  # Servicio Redis
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
