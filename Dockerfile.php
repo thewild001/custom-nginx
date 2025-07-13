@@ -87,7 +87,6 @@ RUN docker-php-ext-enable \
     zip \
     xsl 
 
-
 # Configuración específica para extensiones
 RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini \
     && echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/opcache.ini \
@@ -104,29 +103,14 @@ RUN php -m | grep -E 'intl|opcache|xsl' \
     && php -i | grep 'ICU version' \
     && ldconfig
 
-#########
-
 
 WORKDIR ${APP_HOME}
-
-# Copiar archivos de la aplicación
-#COPY . .
-
 
 # Volúmenes
 VOLUME [${APP_HOME}, ${COMPOSER_DEPS_PATH}]
-
-# Directorio de trabajo
-WORKDIR ${APP_HOME}
 
 # Exponer puerto de PHP-FPM
 EXPOSE 9000
 
 # Comando para iniciar PHP-FPM
 CMD ["php-fpm"]
-
-
-
-
-
-
