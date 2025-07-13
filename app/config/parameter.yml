@@ -1,0 +1,38 @@
+# This file is auto-generated during the composer install
+parameters:
+    database_driver: pdo_pgsql
+    database_host: 127.0.0.1
+    database_path: null
+    database_port: 5432
+    database_name: my-db
+    database_user: postgres
+    database_password: postgres
+    site_name: "Site name"
+    mailer_transport: smtp
+    mailer_host: smtp.uci.cu
+    mailer_user: fortes@uci.cu
+    mailer_password: pass
+    mailer_port: 25
+    mailer_notification_system: fortes@uci.cu
+    app.locales: es
+    locale: es
+    secret: ThisTokenIsNotSoSecretChangeIt
+    debug_toolbar: false
+    debug_redirects: false
+    use_assetic_controller: true
+    sdr_user: sdr
+    sdr_password: sdr123456
+    sdr_host: "http://10.128.60.59"
+    sdr_port: 8089
+    sdr_path: /sdr2.0
+    sdr_connection_name: "SIGIES default connection"
+    sdr_connection_database_user: postgres
+    sdr_connection_database_password: postgres
+    sdr_connection_database_host: 10.128.60.57
+    sdr_connection_database_port: 5432
+    sdr_connection_database_name: my-db
+    sdr_base_path: "%kernel.root_dir%/../src/SIGIES/ReportsBundle/Library/jrxml/"
+    monolog_base_path: "%xalix.param.web_dir%/uploads/trace/"
+    jar_mining_result_statistics_base_path: "%xalix.param.web_dir%/uploads/data_mining_result/"
+    jar_statistics_path: "%kernel.root_dir%/../src/SIGIES/ArquitectureBaseBundle/Library/jar/Xalix-Logs-Mining.jar"
+    jar_parameters_statistics_path: "%kernel.root_dir%/../src/SIGIES/ArquitectureBaseBundle/Library/jar/config.properties"
