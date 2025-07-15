@@ -14,7 +14,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: Dockerfile.nginx
+      dockerfile: Dockerfile.openresty
     restart: unless-stopped
     ports:
       - "5925:80"
