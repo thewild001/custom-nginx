@@ -43,6 +43,5 @@ jobs:
           file: Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/custom-nginx:latest
-          cache: true
           #cache-from: type=gha
           #cache-to: type=gha,mode=max
