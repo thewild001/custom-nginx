@@ -106,7 +106,6 @@ RUN php -m | grep -E 'intl|opcache|xsl' \
     && php -i | grep 'ICU version' \
     && ldconfig
 
-
 WORKDIR ${APP_HOME}
 
 # Volúmenes
