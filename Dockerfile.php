@@ -8,7 +8,7 @@ ENV COMPOSER_DEPS_PATH /tmp/composer_deps
 
 # Instalar dependencias del sistema
 RUN apt-get clean && \
-apt-get update -o Acquire::Check-Valid-Until=false && \
+#apt-get update -o Acquire::Check-Valid-Until=false && \
 apt-get update --fix-missing && \
 apt-get install -f && \
 apt-get install -y --no-install-recommends --allow-remove-essential \
