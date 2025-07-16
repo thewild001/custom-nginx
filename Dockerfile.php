@@ -1,14 +1,13 @@
 # Etapa de dependencias de sistema y Composer
-FROM php:7.1-fpm as base
+FROM php:7.1-fpm-buster as base
 
 # Variables de entorno
 ENV DEBIAN_FRONTEND=noninteractive
-ENV APP_HOME /var/www/html
-ENV COMPOSER_DEPS_PATH /tmp/composer_deps
+ENV APP_HOME=/var/www/html
+ENV COMPOSER_DEPS_PATH=/tmp/composer_deps
 
 # Instalar dependencias del sistema
 RUN apt-get clean && \
-#apt-get update -o Acquire::Check-Valid-Until=false && \
 apt-get update --fix-missing && \
 apt-get install -f && \
 apt-get install -y --no-install-recommends --allow-remove-essential \
