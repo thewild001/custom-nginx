@@ -1,4 +1,4 @@
-name: Custom Nginx CI
+name: Custom sf php CI
 
 on:
   push:
