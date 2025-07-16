@@ -1,5 +1,5 @@
 # Etapa de dependencias de sistema y Composer
-FROM php:7.1-fpm-buster as base
+FROM php:7.1-fpm-buster
 
 # Variables de entorno
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,8 +8,8 @@ ENV COMPOSER_DEPS_PATH=/tmp/composer_deps
 
 # Instalar dependencias del sistema
 RUN apt-get clean && \
-apt-get update --fix-missing && \
-apt-get install -f && \
+#apt-get update --fix-missing && \
+#apt-get install -f && \
 apt-get install -y --no-install-recommends --allow-remove-essential \
     openssh-client \
     gettext \
