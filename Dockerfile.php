@@ -1,5 +1,5 @@
 # Etapa de dependencias de sistema y Composer
-FROM php:7.1-fpm-buster as base
+FROM php:7.1-fpm as base
 
 # Variables de entorno
 ENV DEBIAN_FRONTEND=noninteractive
