@@ -43,4 +43,3 @@ jobs:
           file: Dockerfile.php
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/sf-php-base:latest
-          cache: true
