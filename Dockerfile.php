@@ -7,10 +7,8 @@ ENV APP_HOME=/var/www/html
 ENV COMPOSER_DEPS_PATH=/tmp/composer_deps
 
 # Instalar dependencias del sistema
-RUN apt-get clean && \
-#apt-get update --fix-missing && \
-#apt-get install -f && \
-apt-get install -y --no-install-recommends --allow-remove-essential \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --allow-remove-essential \
     openssh-client \
     gettext \
     nano \
@@ -32,6 +30,7 @@ apt-get install -y --no-install-recommends --allow-remove-essential \
     libicu-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Instalar Composer
 COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
