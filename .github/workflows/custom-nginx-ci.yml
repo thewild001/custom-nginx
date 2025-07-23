@@ -1,4 +1,4 @@
-name: Custom Nginx CI
+name: Custom Nginx LUA CI
 
 on:
   push:
