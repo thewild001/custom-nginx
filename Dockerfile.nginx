@@ -1,7 +1,9 @@
 FROM openresty/openresty:alpine
 
 # Instalar dependencias
-RUN apk add --no-cache redis
+#RUN apk add --no-cache redis
+RUN apk add --no-cache redis openresty-opm && \
+    opm install bungle/lua-resty-promise
 
 # Crear directorios para Lua y configuración
 RUN mkdir -p /usr/local/openresty/nginx/conf/lua
