@@ -8,7 +8,7 @@ RUN mkdir -p /usr/local/openresty/nginx/conf/lua
 
 # Copiar configuración de Nginx
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY redis_cache.lua /usr/local/openresty/nginx/conf/lua/redis_cache.lua
+COPY lua/redis_cache.lua /usr/local/openresty/nginx/conf/lua/redis_cache.lua
 
 # Exponer puerto HTTP
 EXPOSE 80
