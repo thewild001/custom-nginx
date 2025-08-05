@@ -1,1 +1,45 @@
-#
+name: Custom All CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
+  ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      openresty_changed: ${{ steps.changes.outputs.openresty_changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect changes
+        id: changes
+        run: |
+          echo "openresty_changed=$(git diff --quiet HEAD^ HEAD / || echo 'true')" >> $GITHUB_OUTPUT
+          
+  build:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.openresty_changed == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.all
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fpm-openresty-base:latest
