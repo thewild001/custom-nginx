@@ -103,13 +103,8 @@ RUN apk add --no-cache \
     git \
     openssl-dev
 
-ENV OPENSSL_VERSION=1.1.1w
 ENV OPENRESTY_VERSION=1.27.1.2
 
-RUN mkdir -p /usr/src && \
-    cd /usr/src && \
-    curl -O https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && \
-    tar -xzf openssl-${OPENSSL_VERSION}.tar.gz
 
 RUN curl -O https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz && \
     tar -xzf openresty-${OPENRESTY_VERSION}.tar.gz && \
@@ -119,7 +114,6 @@ RUN curl -O https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz
       --http-v2 \
       --with-http_ssl_module \
       --with-http_v2_module \
-      --with-openssl=/usr/src/openssl-1.1.1w \
       --with-http_realip_module \
       --with-http_stub_status_module \
       --with-pcre-jit \
