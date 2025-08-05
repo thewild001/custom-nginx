@@ -1,17 +1,14 @@
 # Etapa 1: PHP-FPM para Symfony 2.7.16
 FROM php:7.1-fpm-buster AS php-build
 
-# Variables de entorno
 ENV DEBIAN_FRONTEND=noninteractive \
     APP_HOME=/var/www/html \
     COMPOSER_DEPS_PATH=/tmp/composer_deps
 
-# Configurar repositorios de Debian Buster (soporte legacy)
 RUN echo "deb http://archive.debian.org/debian buster main" > /etc/apt/sources.list && \
     echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list && \
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
 
-# Instalar dependencias del sistema
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --allow-remove-essential \
     openssh-client \
@@ -36,7 +33,6 @@ RUN apt-get update && \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar extensiones PHP
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions \
     pdo_pgsql \
@@ -57,7 +53,6 @@ RUN install-php-extensions \
     xmlreader \
     xmlwriter
 
-# Configuración de opcache
 RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
@@ -68,95 +63,41 @@ RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.revalidate_freq=60" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Instalar Composer
 COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 
-# Crear directorios y copiar código
 RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
-# Copiar composer.json y dependencias
 COPY composer.json ./
 RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
     /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
     /usr/local/bin/composer install -vvv -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
-# Mover código a la ubicación correcta
 WORKDIR ${APP_HOME}
 COPY . .
 
-# Etapa 2: OpenResty (Nginx + Lua + Redis)
-FROM alpine:3.18 AS nginx-build
+# Etapa 2 y final: Imagen oficial OpenResty + PHP-FPM integrado
+FROM openresty/openresty:alpine
 
-# Instalar dependencias
-
-FROM alpine:3.18 AS nginx-build
-
+# Instalar dependencias necesarias de PHP y Redis para producción
 RUN apk add --no-cache \
     redis \
-    build-base \
-    pcre-dev \
-    zlib-dev \
-    linux-headers \
-    curl \
-    ca-certificates \
-    git \
-    openssl-dev
+    supervisor
 
-ENV OPENRESTY_VERSION=1.27.1.2
-
-
-RUN curl -O https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz && \
-    tar -xzf openresty-${OPENRESTY_VERSION}.tar.gz && \
-    cd openresty-${OPENRESTY_VERSION} && \
-    ./configure \
-      --prefix=/usr/local/openresty \
-      --http-v2 \
-      --with-http_ssl_module \
-      --with-http_v2_module \
-      --with-http_realip_module \
-      --with-http_stub_status_module \
-      --with-pcre-jit \
-      --with-http_gzip_static_module && \
-    make -j2 && \
-    make install
-
-
-
-###$
-
-# Etapa 3: Imagen final con PHP-FPM y OpenResty
-FROM alpine:3.18
-
-# Copiar desde las etapas anteriores
+# Copiar PHP-FPM y dependencias desde la etapa php-build
 COPY --from=php-build /usr/local /usr/local
 COPY --from=php-build ${APP_HOME} ${APP_HOME}
-COPY --from=nginx-build /usr/local/openresty /usr/local/openresty
+COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
-# Instalar dependencias en Alpine
-RUN apk add --no-cache \
-    redis \
-    pcre \
-    zlib \
-    openssl \
-    ca-certificates
-
-# Copiar configuración de PHP-FPM
-COPY --from=php-build /usr/local/etc /usr/local/etc
-
-# Copiar configuración de OpenResty
+# Copiar configuración personalizada de OpenResty
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 
-# Copiar script de inicio para supervisord
+# Copiar script de inicio supervisord
 COPY supervisord.conf /etc/supervisord.conf
 
-# Directorio de trabajo
 WORKDIR ${APP_HOME}
 
-# Exponer puertos
 EXPOSE 80 9000
 
-# Comando para iniciar servicios
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.install
-
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
