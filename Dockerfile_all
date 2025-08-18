@@ -1,0 +1,97 @@
+
+# ==================================================================
+# Stage 1: PHP 7.1 + extensiones + Composer (build-time)
+# ==================================================================
+FROM php:7.1-fpm-buster AS php-build
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    APP_HOME=/usr/local/openresty/nginx/html \
+    COMPOSER_VENDOR_DIR=/opt/vendor
+
+# Repositorios legacy (exactos)
+RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian buster main" > /etc/apt/sources.list && \
+    echo "deb [check-valid-until=no] http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+
+# Instalación completa (sin omitir ningún paquete)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --allow-remove-essential \
+        openssh-client gettext nano gnupg libc-client-dev rsync \
+        git unzip wget curl libpq-dev libldap2-dev libfreetype6-dev \
+        libjpeg62-turbo-dev libpng-dev libonig-dev libxml2-dev \
+        libzip-dev libicu-dev ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Extensiones PHP
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions \
+        pdo_pgsql pgsql exif pcntl bcmath ldap imap gd intl zip xsl \
+        opcache dom simplexml xml xmlreader xmlwriter
+
+# Config opcache
+RUN { \
+        echo "opcache.enable=1"; \
+        echo "opcache.enable_cli=1"; \
+        echo "opcache.memory_consumption=128"; \
+        echo "opcache.interned_strings_buffer=8"; \
+        echo "opcache.max_accelerated_files=4000"; \
+        echo "opcache.revalidate_freq=60"; \
+        echo "opcache.validate_timestamps=1"; \
+    } > /usr/local/etc/php/conf.d/opcache.ini
+
+# Composer LTS (igual que el original)
+COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
+
+# ==================================================================
+# Stage 2: Instalación de dependencias Symfony en /opt/vendor
+# ==================================================================
+FROM php-build AS composer-deps
+WORKDIR /tmp
+COPY composer.json composer.lock ./
+RUN php -d memory_limit=-1 /usr/local/bin/composer \
+        config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+    php -d memory_limit=-1 /usr/local/bin/composer \
+        config --no-plugins allow-plugins.ocramius/package-versions false && \
+    /usr/local/bin/composer install \
+        -vvv -q --no-ansi --no-interaction --no-scripts --no-progress \
+        --prefer-dist --ignore-platform-reqs --optimize-autoloader && \
+    mv vendor ${COMPOSER_VENDOR_DIR}
+
+# ==================================================================
+# Stage 3: Runtime final (OpenResty + PHP-FPM + Redis + Supervisor)
+# ==================================================================
+FROM openresty/openresty:alpine AS runtime
+
+# Paquetes adicionales (iguales al original)
+RUN apk add --no-cache redis supervisor
+
+# Copiar PHP y configuraciones
+COPY --from=php-build /usr/local /usr/local
+COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+
+# Copiar vendors generados
+COPY --from=composer-deps /opt/vendor /opt/vendor
+
+# Copiar nginx, lua y supervisor
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY lua/ /usr/local/openresty/nginx/conf/lua/
+COPY supervisord.conf /etc/supervisord.conf
+
+# Usuario no-root y permisos
+ARG UID=1000
+ARG GID=1000
+RUN addgroup -g ${GID} app && \
+    adduser  -D -s /bin/sh -u ${UID} -G app app && \
+    chown -R app:app ${APP_HOME}
+
+# Workdir coincide con el document-root de OpenResty
+WORKDIR ${APP_HOME}
+
+# Entrypoint que enlaza vendor sin sobreescribirlo
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+
+USER app
+EXPOSE 80 9000
+ENTRYPOINT ["entrypoint"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf]
