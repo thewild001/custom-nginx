@@ -46,16 +46,15 @@ COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 # Stage 2: Instalación de dependencias Symfony en /opt/vendor
 # ==================================================================
 FROM php-build AS composer-deps
-WORKDIR /tmp
+WORKDIR ${COMPOSER_VENDOR_DIR}
 COPY composer.json ./
 RUN php -d memory_limit=-1 /usr/local/bin/composer \
         config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
     php -d memory_limit=-1 /usr/local/bin/composer \
         config --no-plugins allow-plugins.ocramius/package-versions false && \
     /usr/local/bin/composer install \
-        -vvv -q --no-ansi --no-interaction --no-scripts --no-progress \
-        --prefer-dist --ignore-platform-reqs --optimize-autoloader && \
-    mv vendor ${COMPOSER_VENDOR_DIR}
+        -vvv --no-ansi --no-interaction --no-scripts --no-progress \
+        --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
 # ==================================================================
 # Stage 3: Runtime final (OpenResty + PHP-FPM + Redis + Supervisor)
