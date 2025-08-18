@@ -61,6 +61,8 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer \
 # ==================================================================
 FROM openresty/openresty:alpine AS runtime
 
+ENV APP_HOME=/usr/local/openresty/nginx/html
+
 # Paquetes adicionales (iguales al original)
 RUN apk add --no-cache redis supervisor
 
@@ -80,8 +82,10 @@ COPY supervisord.conf /etc/supervisord.conf
 ARG UID=1000
 ARG GID=1000
 RUN addgroup -g ${GID} app && \
-    adduser  -D -s /bin/sh -u ${UID} -G app app && \
+    adduser -D -s /bin/sh -u ${UID} -G app app && \
+    mkdir -p ${APP_HOME} && \
     chown -R app:app ${APP_HOME}
+
 
 # Workdir coincide con el document-root de OpenResty
 WORKDIR ${APP_HOME}
