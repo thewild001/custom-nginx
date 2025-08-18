@@ -47,7 +47,7 @@ COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 # ==================================================================
 FROM php-build AS composer-deps
 WORKDIR /tmp
-COPY composer.json composer.lock ./
+COPY composer.json ./
 RUN php -d memory_limit=-1 /usr/local/bin/composer \
         config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
     php -d memory_limit=-1 /usr/local/bin/composer \
