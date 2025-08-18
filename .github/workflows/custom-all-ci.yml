@@ -63,7 +63,7 @@ jobs:
           context: .
           file: Dockerfile.all
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fpm-openresty-base:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fpm-openresty-base1:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
