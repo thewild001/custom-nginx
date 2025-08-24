@@ -74,7 +74,7 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plu
     /usr/local/bin/composer install -vvv -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
 WORKDIR ${APP_HOME}
-COPY . .
+#COPY . .
 
 # Etapa 2 y final: Imagen oficial OpenResty + PHP-FPM integrado
 FROM openresty/openresty:alpine
@@ -82,7 +82,9 @@ FROM openresty/openresty:alpine
 # Instalar dependencias necesarias de PHP y Redis para producción
 RUN apk add --no-cache \
     redis \
+    netcat-openbsd \
     supervisor
+
 
 # Copiar PHP-FPM y dependencias desde la etapa php-build
 COPY --from=php-build /usr/local /usr/local
