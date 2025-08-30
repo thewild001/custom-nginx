@@ -53,7 +53,7 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer \
     php -d memory_limit=-1 /usr/local/bin/composer \
         config --no-plugins allow-plugins.ocramius/package-versions false && \
     /usr/local/bin/composer install \
-        -vvv --no-ansi --no-interaction --no-scripts --no-progress \
+        -vvv -q --no-ansi --no-interaction --no-scripts --no-progress \
         --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
 # ==================================================================
