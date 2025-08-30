@@ -59,12 +59,16 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer \
 # ==================================================================
 # Stage 3: Runtime final (OpenResty + PHP-FPM + Redis + Supervisor)
 # ==================================================================
-FROM openresty/openresty:alpine AS runtime
+FROM openresty/openresty:1.27.1.2-slim AS runtime
 
 ENV APP_HOME=/usr/local/openresty/nginx/html
 
-# Paquetes adicionales (iguales al original)
-RUN apk add --no-cache redis supervisor
+# Instalar paquetes adicionales con apt
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        redis \
+        supervisor \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copiar PHP y configuraciones
 COPY --from=php-build /usr/local /usr/local
@@ -73,7 +77,7 @@ COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 # Copiar vendors generados
 COPY --from=composer-deps /opt/vendor /opt/vendor
 
-# Copiar nginx, lua y supervisor
+# Copiar configuraciones de Nginx, Lua y Supervisor
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
@@ -81,20 +85,25 @@ COPY supervisord.conf /etc/supervisord.conf
 # Usuario no-root y permisos
 ARG UID=1000
 ARG GID=1000
-RUN addgroup -g ${GID} app && \
-    adduser -D -s /bin/sh -u ${UID} -G app app && \
+
+RUN groupadd --gid ${GID} app && \
+    useradd --uid ${UID} --gid ${GID} --shell /bin/bash --create-home app && \
     mkdir -p ${APP_HOME} && \
     chown -R app:app ${APP_HOME}
-
 
 # Workdir coincide con el document-root de OpenResty
 WORKDIR ${APP_HOME}
 
-# Entrypoint que enlaza vendor sin sobreescribirlo
+# Entrypoint
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
 
 USER app
 EXPOSE 80 9000
-ENTRYPOINT ["entrypoint"]
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf]
+
+# Definir volumen
+VOLUME [${APP_HOME}]
+
+#ENTRYPOINT ["entrypoint"]
+#CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+
