@@ -59,7 +59,7 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer \
 # ==================================================================
 # Stage 3: Runtime final (OpenResty + PHP-FPM + Redis + Supervisor)
 # ==================================================================
-FROM openresty/openresty:1.27.1.2-slim AS runtime
+FROM openresty/openresty:1.21.4.1-slim AS runtime
 
 ENV APP_HOME=/usr/local/openresty/nginx/html
 
