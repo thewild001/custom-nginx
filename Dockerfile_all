@@ -64,7 +64,10 @@ FROM openresty/openresty:alpine AS runtime
 ENV APP_HOME=/usr/local/openresty/nginx/html
 
 # Paquetes adicionales (iguales al original)
-RUN apk add --no-cache redis supervisor
+RUN apk add --no-cache \
+    redis \
+    netcat-openbsd \
+    supervisor
 
 # Copiar PHP y configuraciones
 COPY --from=php-build /usr/local /usr/local
