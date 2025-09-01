@@ -62,5 +62,5 @@ jobs:
           file: Dockerfile.buster
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fpm-openresty-base:buster
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
