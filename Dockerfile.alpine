@@ -16,7 +16,7 @@ RUN apk add --no-cache \
     rsync
 
 # php-extension-installer INSTALA AUTOMÁTICAMENTE las dependencias necesarias
-COPY --from=mlocati/php-extension-installer:v2.24.0 /usr/bin/install-php-extensions /usr/local/bin/
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
 RUN install-php-extensions \
     pdo_pgsql \
