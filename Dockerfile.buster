@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends --allow-remove-
 # Instalar php-extension-installer (versión específica para evitar rate limits)
 COPY --from=mlocati/php-extension-installer:2.9.6 /usr/bin/install-php-extensions /usr/local/bin/
 
-# Instalar extensiones de PHP
+# Instalar extensiones PHP adicionales
 RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
@@ -57,6 +57,24 @@ RUN install-php-extensions \
     xmlreader \
     xmlwriter
 
+# Instalación mcrypt (específico para PHP 7.1)
+#RUN apt-get install -y --no-install-recommends --allow-remove-essential mcrypt \
+#    && docker-php-ext-enable mcrypt
+
+# Habilitar extensiones
+RUN docker-php-ext-enable \
+    pdo_pgsql \
+    pgsql \
+    exif \
+    pcntl \
+    bcmath \
+    ldap \
+    imap \
+    gd \
+    intl \
+    zip \
+    xsl 
+
 # Configurar OPcache CORRECTAMENTE
 RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
@@ -75,7 +93,7 @@ RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
 # Dentro de la etapa composer-deps
-RUN git config --global url."https://github.com/".insteadOf "git@github.com/"
+#RUN git config --global url."https://github.com/".insteadOf "git@github.com/"
 
 # Configuración ESPECÍFICA para resolver problemas de GitHub y Composer
 RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
