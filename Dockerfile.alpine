@@ -1,5 +1,5 @@
 # Etapa 1: PHP-FPM para Symfony 2.7.16 (IMAGEN OFICIAL ALPINE PARA PHP 7.1)
-FROM php:7.1.33-fpm-alpine3.11 AS php-build
+FROM php:7.1-fpm-alpine AS php-build
 
 ENV APP_HOME=/var/www/html \
     COMPOSER_DEPS_PATH=/opt/vendor
@@ -57,19 +57,19 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plu
 WORKDIR ${APP_HOME}
 
 # Etapa 2: OpenResty (IMAGEN OFICIAL ALPINE PARA OPENRESTY)
-FROM openresty/openresty:alpine AS runtime
+FROM openresty/openresty:1.21.4.1-alpine AS runtime
 
-# Instalar PHP-FPM (MISMA VERSIÓN QUE LA ETAPA 1)
+# Instalar PHP-FPM en la etapa final (misma versión que la etapa 1)
 RUN apk add --no-cache \
-    php71-fpm=7.1.33-r0 \
-    php71-pdo_pgsql=7.1.33-r0 \
-    php71-pgsql=7.1.33-r0 \
-    php71-ldap=7.1.33-r0 \
-    php71-gd=7.1.33-r0 \
-    php71-intl=7.1.33-r0 \
-    php71-zip=7.1.33-r0 \
-    php71-xsl=7.1.33-r0 \
-    php71-opcache=7.1.33-r0 \
+    php7-fpm \
+    php7-pdo_pgsql \
+    php7-pgsql \
+    php7-ldap \
+    php7-gd \
+    php7-intl \
+    php7-zip \
+    php7-xsl \
+    php7-opcache \
     redis \
     netcat-openbsd \
     supervisor
