@@ -74,9 +74,16 @@ WORKDIR ${APP_HOME}
 # Etapa 2: OpenResty + PHP-FPM (ambas en Debian Buster)
 FROM openresty/openresty:buster
 
-ENV APP_HOME=/usr/local/openresty/nginx/html
+ENV DEBIAN_FRONTEND=noninteractive \
+    APP_HOME=/usr/local/openresty/nginx/html \
+    COMPOSER_DEPS_PATH=/opt/vendor
 
-# Instalar dependencias de PHP (mismo entorno que la etapa 1)
+# Actualizar repositorios (necesario para Buster)
+RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
+    sed -i '/security/d' /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+
+# Instalar dependencias adicionales
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     redis \
@@ -89,7 +96,7 @@ COPY --from=php-build /usr/local /usr/local
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
 # Copiar vendors generados
-COPY --from=php-build /opt/vendor /opt/vendor
+COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
 
 # Copiar configuración personalizada
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
