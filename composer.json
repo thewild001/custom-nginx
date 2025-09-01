@@ -10,12 +10,6 @@
       "Craue\\ConfigBundle": "vendor/craue/config-bundle"
     }
   },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/kevintweber/KtwDatabaseMenuBundle.git"
-    }
-  ],
   "require": {
     "php": ">=7.0",
     "symfony/symfony": "2.7.16",
