@@ -56,15 +56,23 @@ WORKDIR ${COMPOSER_DEPS_PATH}
 
 # Configuración global de Composer (CRUCIAL)
 RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global use-https true && \
     COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
     COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer clear-cache
 
-# Instalar dependencias de Composer
+# Copiar archivos de composición
 COPY composer.json ./
-RUN COMPOSER_ALLOW_SUPERUSER=1 php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+
+#RUN COMPOSER_ALLOW_SUPERUSER=1 php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+#    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
+#    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+
+
+
+# Instalar dependencias de Composer
+RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+    /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
+    /usr/local/bin/composer install -vvv -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+
 
 WORKDIR ${APP_HOME}
 
