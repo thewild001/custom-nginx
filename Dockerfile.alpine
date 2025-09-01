@@ -4,17 +4,8 @@ FROM php:7.1-fpm-alpine AS php-build
 ENV APP_HOME=/usr/local/openresty/nginx/html \
     COMPOSER_DEPS_PATH=/opt/vendor
 
-# Instalar dependencias de desarrollo
+# INSTALAR SOLO LO NECESARIO (sin -dev manual)
 RUN apk add --no-cache \
-    postgresql-dev \
-    ldap-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
-    libpng-dev \
-    oniguruma-dev \
-    libxml2-dev \
-    libzip-dev \
-    icu-dev \
     git \
     unzip \
     wget \
@@ -24,8 +15,9 @@ RUN apk add --no-cache \
     gettext \
     rsync
 
-# Instalar extensiones de PHP
+# php-extension-installer INSTALA AUTOMÁTICAMENTE las dependencias necesarias
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+
 RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
