@@ -5,9 +5,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     APP_HOME=/var/www/html \
     COMPOSER_DEPS_PATH=/opt/vendor
 
-# Actualizar repositorios (necesario para PHP 7.1 en Buster)
+# Configurar repositorios archivados CORRECTAMENTE para Buster EOL
 RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
-    sed -i '/security/d' /etc/apt/sources.list && \
+    sed -i 's|security.debian.org/debian-security|archive.debian.org/debian-security|g' /etc/apt/sources.list && \
+    sed -i 's|deb http://archive.debian.org/debian buster-updates|deb http://archive.debian.org/debian buster-proposed-updates|g' /etc/apt/sources.list && \
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
 
 # Instalar dependencias de PHP
@@ -22,10 +23,16 @@ RUN apt-get update && \
     libxml2-dev \
     libzip-dev \
     libicu-dev \
+    git \
+    unzip \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Instalar php-extension-installer (versión específica para evitar rate limits)
+COPY --from=mlocati/php-extension-installer:2.9.6 /usr/bin/install-php-extensions /usr/local/bin/
+
 # Instalar extensiones de PHP
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
@@ -45,7 +52,7 @@ RUN install-php-extensions \
     xmlreader \
     xmlwriter
 
-# Configurar OPcache
+# Configurar OPcache CORRECTAMENTE
 RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
@@ -55,19 +62,23 @@ RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.revalidate_freq=60" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Instalar Composer
-COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
+# Instalar Composer LTS (versión específica)
+COPY --from=composer:2.2.22 /usr/bin/composer /usr/local/bin/composer
 
 # Preparar directorios
 RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
+# Configuración ESPECÍFICA para resolver problemas de GitHub y Composer
+RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer clear-cache
+
 # Instalar dependencias de Composer
 COPY composer.json ./
-RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
-    /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
-    /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
-
+RUN COMPOSER_ALLOW_SUPERUSER=1 php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
 WORKDIR ${APP_HOME}
 
@@ -78,21 +89,22 @@ ENV DEBIAN_FRONTEND=noninteractive \
     APP_HOME=/usr/local/openresty/nginx/html \
     COMPOSER_DEPS_PATH=/opt/vendor
 
-# Actualizar repositorios (necesario para Buster)
+# Configurar repositorios archivados CORRECTAMENTE
 RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
-    sed -i '/security/d' /etc/apt/sources.list && \
+    sed -i 's|security.debian.org/debian-security|archive.debian.org/debian-security|g' /etc/apt/sources.list && \
+    sed -i 's|deb http://archive.debian.org/debian buster-updates|deb http://archive.debian.org/debian buster-proposed-updates|g' /etc/apt/sources.list && \
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
 
 # Instalar dependencias adicionales
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     redis \
-    netcat \
+    netcat-openbsd \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar PHP y configuraciones
-COPY --from=php-build /usr/local /usr/local
+# Copiar SOLO las extensiones y configuración de PHP necesarias
+COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
 # Copiar vendors generados
@@ -103,14 +115,16 @@ COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
 
+
 USER root
 
-# Crear directorios de logs para Supervisor
+# Crear directorios de logs para Supervisor (con permisos correctos)
 RUN mkdir -p /var/log/supervisor && \
-    chown -R nobody:nobody /var/log/supervisor
+    chown -R www-data:www-data /var/log/supervisor
 
 WORKDIR ${APP_HOME}
 
 EXPOSE 80
 
+# Asegurar que OpenResty se ejecute en foreground
 #CMD ["openresty", "-g", "daemon off;"]
