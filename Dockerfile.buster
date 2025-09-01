@@ -10,9 +10,18 @@ RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian buster mai
     echo "deb [check-valid-until=no] http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list && \
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
 
-# Instalar dependencias de PHP
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends --allow-remove-essential \
+    openssh-client \
+    gettext \
+    nano \
+    gnupg \
+    libc-client-dev \
+    rsync \
+    git \
+    unzip \
+    wget \
+    curl \
     libpq-dev \
     libldap2-dev \
     libfreetype6-dev \
@@ -22,10 +31,7 @@ RUN apt-get update && \
     libxml2-dev \
     libzip-dev \
     libicu-dev \
-    git \
-    unzip \
-    wget \
-    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar php-extension-installer (versión específica para evitar rate limits)
