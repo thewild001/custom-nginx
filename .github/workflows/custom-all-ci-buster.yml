@@ -69,6 +69,6 @@ jobs:
           context: .
           file: Dockerfile.buster
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/fpm-openresty-base:buster
+          tags: ghcr.io/${{ secrets.GH_USERNAME }}/fpm-openresty-base:buster
           cache-from: type=gha
           cache-to:   type=gha,mode=max
