@@ -42,11 +42,18 @@ jobs:
           version: v0.10.0
           buildkitd-flags: --debug
 
-      - name: Log in to Docker Hub
+      #- name: Log in to Docker Hub
+      #  uses: docker/login-action@v3
+      #  with:
+      #    username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      #    password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN || 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 }}
 
       - name: Cache Docker layers
         uses: actions/cache@v3
@@ -61,6 +68,6 @@ jobs:
           context: .
           file: Dockerfile.buster
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fpm-openresty-base:buster
+          tags: ghcr.io/${{ github.actor }}/fpm-openresty-base:buster
           cache-from: type=gha
           cache-to:   type=gha,mode=max
