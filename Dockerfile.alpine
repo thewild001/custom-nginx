@@ -56,8 +56,7 @@ WORKDIR ${COMPOSER_DEPS_PATH}
 
 # Configuración global de Composer (crucial para GitHub)
 RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global git-timeout 600
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600
 
 # Instalar dependencias de Composer
 COPY composer.json ./
