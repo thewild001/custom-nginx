@@ -1,8 +1,8 @@
 # Etapa 1: PHP-FPM para Symfony 2.7.16 (PHP 7.1 en Alpine)
 FROM php:7.1-fpm-alpine AS php-build
 
-ENV APP_HOME=/var/www/html \
-    COMPOSER_DEPS_PATH=/tmp/composer_deps
+ENV APP_HOME=/usr/local/openresty/nginx/html \
+    COMPOSER_DEPS_PATH=/opt/vendor
 
 # Instalar dependencias de desarrollo
 RUN apk add --no-cache \
@@ -101,10 +101,7 @@ COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
 
-# Scripts personalizados
-COPY docker/scripts /usr/local/bin/scripts
-
-WORKDIR /usr/local/openresty/nginx/html/SIGIES
+WORKDIR ${APP_HOME}
 
 EXPOSE 80
 
