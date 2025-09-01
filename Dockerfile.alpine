@@ -1,15 +1,30 @@
-# Etapa 1: PHP-FPM para Symfony 2.7.16 (IMAGEN OFICIAL ALPINE PARA PHP 7.1)
+# Etapa 1: PHP-FPM para Symfony 2.7.16 (PHP 7.1 en Alpine)
 FROM php:7.1-fpm-alpine AS php-build
 
 ENV APP_HOME=/var/www/html \
-    COMPOSER_DEPS_PATH=/opt/vendor
+    COMPOSER_DEPS_PATH=/tmp/composer_deps
 
-# Instalar dependencias de PHP (usando repositorios archivados para Alpine 3.11)
-RUN sed -i 's|dl-cdn.alpinelinux.org|archive.alpinelinux.org|g' /etc/apk/repositories && \
-    echo "http://archive.alpinelinux.org/alpine/v3.11/main" >> /etc/apk/repositories && \
-    echo "http://archive.alpinelinux.org/alpine/v3.11/community" >> /etc/apk/repositories
+# Instalar dependencias de desarrollo
+RUN apk add --no-cache \
+    postgresql-dev \
+    ldap-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    oniguruma-dev \
+    libxml2-dev \
+    libzip-dev \
+    icu-dev \
+    git \
+    unzip \
+    wget \
+    curl \
+    openssh-client \
+    nano \
+    gettext \
+    rsync
 
-# Instalar extensiones de PHP (usando installer oficial)
+# Instalar extensiones de PHP
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions \
     pdo_pgsql \
@@ -41,7 +56,7 @@ RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.revalidate_freq=60" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# INSTALACIÓN DE COMPOSER LTS
+# Instalar Composer LTS
 COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 
 # Preparar directorios
@@ -56,20 +71,11 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plu
 
 WORKDIR ${APP_HOME}
 
-# Etapa 2: OpenResty (IMAGEN OFICIAL ALPINE PARA OPENRESTY)
-FROM openresty/openresty:1.21.4.1-alpine AS runtime
+# Etapa 2: OpenResty + PHP-FPM integrado
+FROM openresty/openresty:alpine AS runtime
 
-# Instalar PHP-FPM en la etapa final (misma versión que la etapa 1)
+# Instalar solo dependencias necesarias (sin PHP-FPM)
 RUN apk add --no-cache \
-    php7-fpm \
-    php7-pdo_pgsql \
-    php7-pgsql \
-    php7-ldap \
-    php7-gd \
-    php7-intl \
-    php7-zip \
-    php7-xsl \
-    php7-opcache \
     redis \
     netcat-openbsd \
     supervisor
@@ -77,19 +83,26 @@ RUN apk add --no-cache \
 # Cambia al usuario root antes de crear directorios
 USER root
 
-# Crear directorios necesarios
-RUN mkdir -p /var/log/supervisor && \
-    chown -R nobody:nobody /var/log/supervisor
+# Crear directorios de logs para Supervisor
+RUN mkdir -p /var/log/supervisor && chown -R nobody:nobody /var/log/supervisor
 
-# Copiar configuración de PHP desde la etapa 1
+# COPIAR PHP-FPM Y CONFIGURACIÓN DESDE LA ETAPA 1
+COPY --from=php-build /usr/local/bin/php /usr/local/bin/php
+COPY --from=php-build /usr/sbin/php-fpm /usr/sbin/php-fpm
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
+
+# Verificar que php-fpm esté disponible
+RUN ls -la /usr/sbin/php-fpm && \
+    /usr/sbin/php-fpm --version
 
 # Copiar configuración personalizada
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
 
+# Scripts personalizados
+COPY docker/scripts /usr/local/bin/scripts
 
 WORKDIR /usr/local/openresty/nginx/html/SIGIES
 
