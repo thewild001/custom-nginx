@@ -94,7 +94,7 @@ RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
 # Dentro de la etapa composer-deps
-#RUN git config --global url."https://github.com/".insteadOf "git@github.com/"
+RUN git config --global url."https://github.com/".insteadOf "git@github.com/"
 
 # Configuración ESPECÍFICA para resolver problemas de GitHub y Composer
 RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
