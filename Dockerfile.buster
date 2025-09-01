@@ -1,0 +1,114 @@
+# Etapa 1: PHP-FPM para Symfony 2.7.16 (Debian Buster)
+FROM php:7.1-fpm-buster AS php-build
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    APP_HOME=/var/www/html \
+    COMPOSER_DEPS_PATH=/opt/vendor
+
+# Actualizar repositorios (necesario para PHP 7.1 en Buster)
+RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
+    sed -i '/security/d' /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+
+# Instalar dependencias de PHP
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq-dev \
+    libldap2-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar extensiones de PHP
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions \
+    pdo_pgsql \
+    pgsql \
+    exif \
+    pcntl \
+    bcmath \
+    ldap \
+    imap \
+    gd \
+    intl \
+    zip \
+    xsl \
+    opcache \
+    dom \
+    simplexml \
+    xml \
+    xmlreader \
+    xmlwriter
+
+# Configurar OPcache
+RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.revalidate_freq=60" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# Instalar Composer
+COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
+
+# Preparar directorios
+RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
+WORKDIR ${COMPOSER_DEPS_PATH}
+
+# Instalar dependencias de Composer
+COPY composer.json ./
+RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+    /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
+    /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+
+
+WORKDIR ${APP_HOME}
+
+# Etapa 2: OpenResty + PHP-FPM (ambas en Debian Buster)
+FROM openresty/openresty:1.21.4.1-buster
+
+# Instalar dependencias de PHP (mismo entorno que la etapa 1)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    php7.1-fpm \
+    php7.1-pgsql \
+    php7.1-ldap \
+    php7.1-gd \
+    php7.1-intl \
+    php7.1-zip \
+    php7.1-xsl \
+    php7.1-opcache \
+    redis \
+    netcat \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar configuración de PHP desde la etapa 1
+COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
+
+# Copiar app y vendor desde la etapa 1
+COPY --from=php-build ${APP_HOME} ${APP_HOME}
+
+# Copiar configuración personalizada
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY lua/ /usr/local/openresty/nginx/conf/lua/
+COPY supervisord.conf /etc/supervisord.conf
+
+# Crear directorios de logs para Supervisor
+RUN mkdir -p /var/log/supervisor && \
+    chown -R nobody:nobody /var/log/supervisor
+
+WORKDIR ${APP_HOME}
+
+EXPOSE 80
+
+#CMD ["openresty", "-g", "daemon off;"]
