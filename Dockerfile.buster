@@ -86,7 +86,7 @@ RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Instalar Composer LTS (versión específica)
-COPY --from=ghcr.io/composer/composer:2.2.22 /usr/bin/composer /usr/local/bin/composer
+COPY --from=composer:2.2.22 /usr/bin/composer /usr/local/bin/composer
 
 
 # Preparar directorios
