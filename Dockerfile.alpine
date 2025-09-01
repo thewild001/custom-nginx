@@ -54,9 +54,11 @@ COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
-# Configuración global de Composer (crucial para GitHub)
+# Configuración global de Composer (CRUCIAL)
 RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global use-https true && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer clear-cache
 
 # Instalar dependencias de Composer
 COPY composer.json ./
