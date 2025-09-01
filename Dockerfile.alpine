@@ -1,0 +1,99 @@
+# Etapa 1: PHP-FPM para Symfony 2.7.16 (IMAGEN OFICIAL ALPINE PARA PHP 7.1)
+FROM php:7.1.33-fpm-alpine3.11 AS php-build
+
+ENV APP_HOME=/var/www/html \
+    COMPOSER_DEPS_PATH=/opt/vendor
+
+# Instalar dependencias de PHP (usando repositorios archivados para Alpine 3.11)
+RUN sed -i 's|dl-cdn.alpinelinux.org|archive.alpinelinux.org|g' /etc/apk/repositories && \
+    echo "http://archive.alpinelinux.org/alpine/v3.11/main" >> /etc/apk/repositories && \
+    echo "http://archive.alpinelinux.org/alpine/v3.11/community" >> /etc/apk/repositories
+
+# Instalar extensiones de PHP (usando installer oficial)
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions \
+    pdo_pgsql \
+    pgsql \
+    exif \
+    pcntl \
+    bcmath \
+    ldap \
+    imap \
+    gd \
+    intl \
+    zip \
+    xsl \
+    opcache \
+    dom \
+    simplexml \
+    xml \
+    xmlreader \
+    xmlwriter
+
+# Configurar OPcache
+RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.revalidate_freq=60" >> /usr/local/etc/php/conf.d/opcache.ini && \
+    echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# INSTALACIÓN DE COMPOSER LTS
+COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
+
+# Preparar directorios
+RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
+WORKDIR ${COMPOSER_DEPS_PATH}
+
+# Instalar dependencias de Composer
+COPY composer.json ./
+RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+    /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
+    /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+
+WORKDIR ${APP_HOME}
+
+# Etapa 2: OpenResty (IMAGEN OFICIAL ALPINE PARA OPENRESTY)
+FROM openresty/openresty:alpine AS runtime
+
+# Instalar PHP-FPM (MISMA VERSIÓN QUE LA ETAPA 1)
+RUN apk add --no-cache \
+    php71-fpm=7.1.33-r0 \
+    php71-pdo_pgsql=7.1.33-r0 \
+    php71-pgsql=7.1.33-r0 \
+    php71-ldap=7.1.33-r0 \
+    php71-gd=7.1.33-r0 \
+    php71-intl=7.1.33-r0 \
+    php71-zip=7.1.33-r0 \
+    php71-xsl=7.1.33-r0 \
+    php71-opcache=7.1.33-r0 \
+    redis \
+    netcat-openbsd \
+    supervisor
+
+# Cambia al usuario root antes de crear directorios
+USER root
+
+# Crear directorios necesarios
+RUN mkdir -p /var/log/supervisor && \
+    chown -R nobody:nobody /var/log/supervisor
+
+# Copiar configuración de PHP desde la etapa 1
+COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
+
+# Copiar configuración personalizada
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY lua/ /usr/local/openresty/nginx/conf/lua/
+COPY supervisord.conf /etc/supervisord.conf
+
+
+WORKDIR /usr/local/openresty/nginx/html/SIGIES
+
+EXPOSE 80
+
+# Asegurar que OpenResty se ejecute en foreground
+#CMD ["openresty", "-g", "daemon off;"]
