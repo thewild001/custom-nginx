@@ -54,6 +54,11 @@ COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
+# Configuración global de Composer (crucial para GitHub)
+RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
+    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global git-timeout 600
+
 # Instalar dependencias de Composer
 COPY composer.json ./
 RUN COMPOSER_ALLOW_SUPERUSER=1 php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
