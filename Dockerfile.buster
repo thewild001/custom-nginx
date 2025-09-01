@@ -47,7 +47,6 @@ RUN install-php-extensions \
 
 # Configurar OPcache
 RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
-    echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini && \
@@ -73,35 +72,31 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plu
 WORKDIR ${APP_HOME}
 
 # Etapa 2: OpenResty + PHP-FPM (ambas en Debian Buster)
-FROM openresty/openresty:1.21.4.1-buster
+FROM openresty/openresty:buster
+
+ENV APP_HOME=/usr/local/openresty/nginx/html
 
 # Instalar dependencias de PHP (mismo entorno que la etapa 1)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    php7.1-fpm \
-    php7.1-pgsql \
-    php7.1-ldap \
-    php7.1-gd \
-    php7.1-intl \
-    php7.1-zip \
-    php7.1-xsl \
-    php7.1-opcache \
     redis \
     netcat \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar configuración de PHP desde la etapa 1
+# Copiar PHP y configuraciones
+COPY --from=php-build /usr/local /usr/local
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
-COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 
-# Copiar app y vendor desde la etapa 1
-COPY --from=php-build ${APP_HOME} ${APP_HOME}
+# Copiar vendors generados
+COPY --from=php-build /opt/vendor /opt/vendor
 
 # Copiar configuración personalizada
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
+
+USER root
 
 # Crear directorios de logs para Supervisor
 RUN mkdir -p /var/log/supervisor && \
