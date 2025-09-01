@@ -68,10 +68,15 @@ COPY --from=composer:2.2.22 /usr/bin/composer /usr/local/bin/composer
 RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
+# Dentro de la etapa composer-deps
+RUN git config --global url."https://github.com/".insteadOf "git@github.com/"
+
 # Configuración ESPECÍFICA para resolver problemas de GitHub y Composer
 RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
     COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
     COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer clear-cache
+
+
 
 # Instalar dependencias de Composer
 COPY composer.json ./
@@ -112,7 +117,6 @@ COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
-
 
 USER root
 
