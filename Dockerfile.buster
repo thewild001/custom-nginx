@@ -86,28 +86,28 @@ RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Instalar Composer LTS (versión específica)
-COPY --from=composer:2.2.22 /usr/bin/composer /usr/local/bin/composer
+COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 
 
 # Preparar directorios
 RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
-# Dentro de la etapa composer-deps
-RUN git config --global url."https://github.com/".insteadOf "git@github.com/"
+# Instalar Composer
+COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 
-# Configuración ESPECÍFICA para resolver problemas de GitHub y Composer
-RUN COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global github-protocols https && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --global process-timeout 600 && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer clear-cache
+# Crear directorios
+RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 
+WORKDIR ${COMPOSER_DEPS_PATH}
 
+# Copiar archivos de composición
+COPY composer.json ./
 
 # Instalar dependencias de Composer
-COPY composer.json ./
-RUN COMPOSER_ALLOW_SUPERUSER=1 php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
-    COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
+    /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
+    /usr/local/bin/composer install -vvv --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
 WORKDIR ${APP_HOME}
 
