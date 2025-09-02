@@ -44,15 +44,10 @@ RUN apk add --no-cache --virtual .build-deps \
 # Instalar php-extension-installer (versión específica para evitar rate limits)
 COPY --from=mlocati/php-extension-installer:2.9.6 /usr/bin/install-php-extensions /usr/local/bin/
 
-# Configurar extensiones antes de instalar
+# Configurar extensiones antes de instalar (CORREGIDO PARA ALPINE)
 RUN docker-php-ext-configure gd \
-        --with-freetype-dir=/usr/include/ \
-        --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-configure imap \
-        --with-kerberos \
-        --with-imap-ssl \
-    && docker-php-ext-configure ldap \
-        --with-libdir=lib/
+    && docker-php-ext-configure ldap
 
 # Instalar extensiones PHP adicionales
 RUN install-php-extensions \
