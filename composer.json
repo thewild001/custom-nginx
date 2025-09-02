@@ -36,7 +36,6 @@
     "knplabs/knp-snappy-bundle": "v1.4",
     "fp/jsformvalidator-bundle": "1.5",
     "craue/formflow-bundle": "2.1.9",
-    "kevintweber/ktw-database-menu-bundle": "^0.3.2",
     "lexik/maintenance-bundle": "v1.0.4",
     "gregwar/captcha-bundle": "v1.1",
     "vich/uploader-bundle":"v0.14.0",
