@@ -10,12 +10,6 @@
       "Craue\\ConfigBundle": "vendor/craue/config-bundle"
     }
   },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/vdashchenko/KtwDatabaseMenuBundle.git"
-    }
-  ],
   "require": {
     "php": ">=7.0",
     "symfony/symfony": "2.7.16",
@@ -42,7 +36,7 @@
     "knplabs/knp-snappy-bundle": "v1.4",
     "fp/jsformvalidator-bundle": "1.5",
     "craue/formflow-bundle": "2.1.9",
-    "kevintweber/ktw-database-menu-bundle": "v0.4.2",
+    "kevintweber/ktw-database-menu-bundle": "^0.3.2",
     "lexik/maintenance-bundle": "v1.0.4",
     "gregwar/captcha-bundle": "v1.1",
     "vich/uploader-bundle":"v0.14.0",
