@@ -70,6 +70,6 @@ jobs:
           context: .
           file: Dockerfile.alpine
           push: true
-          tags: ghcr.io/thewild001/fpm-openresty-base:alpine
+          tags: ghcr.io/thewild001/fpm-openresty-base-alpine:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max     
