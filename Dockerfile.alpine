@@ -118,9 +118,13 @@ RUN apk add --no-cache \
     netcat-openbsd \
     supervisor 
 
+
+# php-fpm binario y librerías
+COPY --from=php-build /usr/local/sbin/php-fpm /usr/local/sbin/
+COPY --from=php-build /usr/local/lib /usr/local/lib
 # Copiar SOLO las extensiones y configuración de PHP necesarias desde php-build
-COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+
 
 # Copiar vendors generados
 COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
