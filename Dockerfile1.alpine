@@ -81,14 +81,6 @@ RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Configurar PHP para Symfony 2.7
-RUN echo "[PHP]" > /usr/local/etc/php/conf.d/symfony.ini \
-    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/symfony.ini \
-    && echo "max_execution_time = 60" >> /usr/local/etc/php/conf.d/symfony.ini \
-    && echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/symfony.ini \
-    && echo "post_max_size = 20M" >> /usr/local/etc/php/conf.d/symfony.ini \
-    && echo "date.timezone = UTC" >> /usr/local/etc/php/conf.d/symfony.ini \
-    && echo "expose_php = Off" >> /usr/local/etc/php/conf.d/symfony.ini
 
 # Instalar Composer LTS
 COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
@@ -206,28 +198,6 @@ RUN mkdir -p \
     chown -R nobody:nobody /var/log /usr/local/openresty/nginx ${APP_HOME} && \
     chmod 755 /var/log/supervisor /var/run/supervisor
 
-# Configuración de supervisord optimizada
-RUN echo "[supervisord]" > /etc/supervisord.conf \
-    && echo "nodaemon=true" >> /etc/supervisord.conf \
-    && echo "logfile=/var/log/supervisor/supervisord.log" >> /etc/supervisord.conf \
-    && echo "pidfile=/var/run/supervisor/supervisord.pid" >> /etc/supervisord.conf \
-    && echo "user=root" >> /etc/supervisord.conf \
-    && echo "" >> /etc/supervisord.conf \
-    && echo "[program:openresty]" >> /etc/supervisord.conf \
-    && echo "command=/usr/local/openresty/bin/openresty -g 'daemon off;'" >> /etc/supervisord.conf \
-    && echo "autostart=true" >> /etc/supervisord.conf \
-    && echo "autorestart=true" >> /etc/supervisord.conf \
-    && echo "stdout_logfile=/var/log/supervisor/openresty.log" >> /etc/supervisord.conf \
-    && echo "stderr_logfile=/var/log/supervisor/openresty_error.log" >> /etc/supervisord.conf \
-    && echo "user=nobody" >> /etc/supervisord.conf \
-    && echo "" >> /etc/supervisord.conf \
-    && echo "[program:php-fpm]" >> /etc/supervisord.conf \
-    && echo "command=/usr/local/sbin/php-fpm -F" >> /etc/supervisord.conf \
-    && echo "autostart=true" >> /etc/supervisord.conf \
-    && echo "autorestart=true" >> /etc/supervisord.conf \
-    && echo "stdout_logfile=/var/log/supervisor/php-fpm.log" >> /etc/supervisord.conf \
-    && echo "stderr_logfile=/var/log/supervisor/php-fpm_error.log" >> /etc/supervisord.conf \
-    && echo "user=nobody" >> /etc/supervisord.conf
 
 # Copiar configuración personalizada (estos archivos deben existir)
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
@@ -237,9 +207,6 @@ COPY lua/ /usr/local/openresty/nginx/conf/lua/
 WORKDIR ${APP_HOME}
 
 EXPOSE 80 9000
-
-# Health check
-
 
 # Comando por defecto para iniciar supervisord
 #CMD ["supervisord", "-c", "/etc/supervisord.conf"]
