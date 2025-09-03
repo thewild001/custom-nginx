@@ -1,0 +1,75 @@
+name: Custom One Alpine CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      openresty_changed: ${{ steps.changes.outputs.openresty_changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changes in root directory
+        id: changes
+        run: |
+          # Verifica si hubo cambios en el directorio raíz
+          if git diff --quiet HEAD^ HEAD -- .; then
+            echo "openresty_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "openresty_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.openresty_changed == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: v0.10.0
+          buildkitd-flags: --debug
+
+      #- name: Log in to Docker Hub
+      #  uses: docker/login-action@v3
+      #  with:
+      #    username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      #   password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GH_USERNAME }}                # Tu nombre de usuario de GitHub
+          password: ${{ secrets.GH_PAT }}                     # Tu token de acceso personal
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+            
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile1.alpine
+          push: true
+          tags: ghcr.io/thewild001/fpm-openresty-base-alpine1:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max     
