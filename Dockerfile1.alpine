@@ -163,28 +163,6 @@ COPY --from=php-build /usr/lib/libssl.so* /usr/lib/
 # Copiar vendors de Composer
 COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
 
-# Configurar PHP-FPM para alta performance
-RUN echo "[global]" > /usr/local/etc/php-fpm.conf \
-    && echo "pid = /var/run/php-fpm.pid" >> /usr/local/etc/php-fpm.conf \
-    && echo "error_log = /var/log/php-fpm.log" >> /usr/local/etc/php-fpm.conf \
-    && echo "daemonize = no" >> /usr/local/etc/php-fpm.conf \
-    && echo "" >> /usr/local/etc/php-fpm.conf \
-    && echo "[www]" >> /usr/local/etc/php-fpm.conf \
-    && echo "user = nobody" >> /usr/local/etc/php-fpm.conf \
-    && echo "group = nobody" >> /usr/local/etc/php-fpm.conf \
-    && echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.conf \
-    && echo "listen.owner = nobody" >> /usr/local/etc/php-fpm.conf \
-    && echo "listen.group = nobody" >> /usr/local/etc/php-fpm.conf \
-    && echo "pm = dynamic" >> /usr/local/etc/php-fpm.conf \
-    && echo "pm.max_children = 20" >> /usr/local/etc/php-fpm.conf \
-    && echo "pm.start_servers = 2" >> /usr/local/etc/php-fpm.conf \
-    && echo "pm.min_spare_servers = 1" >> /usr/local/etc/php-fpm.conf \
-    && echo "pm.max_spare_servers = 3" >> /usr/local/etc/php-fpm.conf \
-    && echo "pm.max_requests = 1000" >> /usr/local/etc/php-fpm.conf \
-    && echo "request_terminate_timeout = 60s" >> /usr/local/etc/php-fpm.conf \
-    && echo "catch_workers_output = yes" >> /usr/local/etc/php-fpm.conf \
-    && echo "decorate_workers_output = no" >> /usr/local/etc/php-fpm.conf
-
 # Crear directorios necesarios
 RUN mkdir -p \
     /var/log/supervisor \
