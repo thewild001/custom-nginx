@@ -154,7 +154,7 @@ RUN mkdir -p /var/log/supervisor && \
     if id -u nginx >/dev/null 2>&1; then \
         chown -R nginx:nginx /var/log/supervisor; \
     elif id -u www-data >/dev/null 2>&1; then \
-        chown -R www-www-data /var/log/supervisor; \
+        chown -R www-data:www-data /var/log/supervisor; \
     else \
         chown -R nobody:nobody /var/log/supervisor; \
     fi
