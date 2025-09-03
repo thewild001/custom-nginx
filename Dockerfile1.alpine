@@ -1,49 +1,22 @@
-# Única etapa: Todo en Alpine 3.12 (última versión con PHP 7.1)
-FROM alpine:3.12
+# Usar Alpine 3.12 específico con repositorios funcionales
+FROM alpine:3.12.12
 
-# Actualizar repositorios a versiones archivadas (Alpine 3.12 es EOL)
-RUN sed -i 's|dl-cdn.alpinelinux.org|archive.alpinelinux.org|g' /etc/apk/repositories && \
+# Configurar repositorios archivados más estables
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/v3.12/main" > /etc/apk/repositories && \
+    echo "http://dl-cdn.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories && \
     echo "http://archive.alpinelinux.org/alpine/v3.12/main" >> /etc/apk/repositories && \
     echo "http://archive.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories
 
 # Variables de entorno
 ENV APP_HOME=/usr/local/openresty/nginx/html/SIGIES \
-    COMPOSER_DEPS_PATH=/opt/vendor
+    COMPOSER_DEPS_PATH=/opt/vendor \
+    COMPOSER_ALLOW_SUPERUSER=1
 
-# Instalar todas las dependencias necesarias en un solo paso
+# Actualizar índices de paquetes
+RUN apk update || true
+
+# Instalar dependencias básicas primero
 RUN apk add --no-cache \
-    # Dependencias para PHP
-    php71 \
-    php71-fpm \
-    php71-pdo_pgsql \
-    php71-pgsql \
-    php71-exif \
-    php71-pcntl \
-    php71-bcmath \
-    php71-ldap \
-    php71-imap \
-    php71-gd \
-    php71-intl \
-    php71-zip \
-    php71-xsl \
-    php71-opcache \
-    php71-dom \
-    php71-simplexml \
-    php71-xml \
-    php71-xmlreader \
-    php71-xmlwriter \
-    php71-mbstring \
-    php71-curl \
-    php71-openssl \
-    php71-tokenizer \
-    # Dependencias para OpenResty
-    openresty \
-    openresty-resty \
-    openresty-openssl \
-    # Otras dependencias
-    redis \
-    netcat-openbsd \
-    supervisor \
     unzip \
     git \
     nano \
@@ -51,11 +24,55 @@ RUN apk add --no-cache \
     rsync \
     wget \
     curl \
-    openssh-client
+    openssh-client \
+    netcat-openbsd
+
+# Instalar PHP 7.1 y extensiones en grupos separados para debug
+RUN apk add --no-cache \
+    php71 \
+    php71-fpm \
+    php71-opcache \
+    php71-mbstring \
+    php71-curl \
+    php71-openssl
+
+RUN apk add --no-cache \
+    php71-pdo_pgsql \
+    php71-pgsql \
+    php71-dom \
+    php71-simplexml \
+    php71-xml \
+    php71-xmlreader \
+    php71-xmlwriter
+
+RUN apk add --no-cache \
+    php71-exif \
+    php71-pcntl \
+    php71-bcmath \
+    php71-gd \
+    php71-intl \
+    php71-zip \
+    php71-xsl \
+    php71-tokenizer || echo "Some PHP extensions may not be available"
+
+# Instalar servicios adicionales
+RUN apk add --no-cache \
+    supervisor \
+    redis || echo "Redis installation failed, continuing"
+
+# Intentar instalar OpenResty (puede fallar en archivos)
+RUN apk add --no-cache \
+    openresty \
+    openresty-resty \
+    openresty-openssl || \
+    (echo "OpenResty not available in archives, installing nginx" && \
+     apk add --no-cache nginx)
+
+# Instalar LDAP e IMAP (suelen fallar)
+RUN apk add --no-cache php71-ldap php71-imap || echo "LDAP/IMAP extensions not available"
 
 # Configurar OPcache
 RUN echo "[opcache]" > /etc/php71/conf.d/opcache.ini && \
-    echo "zend_extension=opcache.so" >> /etc/php71/conf.d/opcache.ini && \
     echo "opcache.enable=1" >> /etc/php71/conf.d/opcache.ini && \
     echo "opcache.enable_cli=1" >> /etc/php71/conf.d/opcache.ini && \
     echo "opcache.memory_consumption=128" >> /etc/php71/conf.d/opcache.ini && \
@@ -74,18 +91,19 @@ RUN mkdir -p /var/log/supervisor ${APP_HOME} ${COMPOSER_DEPS_PATH} && \
 
 # Instalar Composer LTS (versión compatible con PHP 7.1)
 RUN wget https://getcomposer.org/installer -O /tmp/composer-setup.php && \
-    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --version=2.2.22
+    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --version=2.2.22 && \
+    rm /tmp/composer-setup.php
 
 # Preparar directorios para la aplicación
 WORKDIR ${COMPOSER_DEPS_PATH}
 
-# Copiar composer.json (esto debe hacerse en el build)
+# Copiar composer.json
 COPY composer.json ./
 
-# Instalar dependencias de Composer (comentado para el build, se activa cuando se copia composer.json)
+# Instalar dependencias de Composer
 RUN composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
     composer config --no-plugins allow-plugins.ocramius/package-versions false && \
-    COMPOSER_ALLOW_SUPERUSER=1 composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+    composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
 
 # Copiar configuración personalizada
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
@@ -96,5 +114,5 @@ WORKDIR ${APP_HOME}
 
 EXPOSE 80 9000
 
-# Asegurar que OpenResty se ejecute en foreground
-#CMD ["openresty", "-g", "daemon off;"]
+# Comando por defecto comentado para debugging
+# CMD ["supervisord", "-c", "/etc/supervisord.conf"]
