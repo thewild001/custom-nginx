@@ -121,9 +121,17 @@ RUN apk add --no-cache \
 
 # php-fpm binario y librerías
 COPY --from=php-build /usr/local/sbin/php-fpm /usr/local/sbin/
+
+COPY --from=php-build /usr/local/bin/php-config /usr/local/bin/php-config
+COPY --from=php-build /usr/local/bin/phpize /usr/local/bin/phpize
+COPY --from=php-build /usr/local/bin/phpdbg /usr/local/bin/phpdbg
+COPY --from=php-build /usr/local/bin/php /usr/local/bin/php
+COPY --from=php-build /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
+
 COPY --from=php-build /usr/local/lib /usr/local/lib
 # Copiar SOLO las extensiones y configuración de PHP necesarias desde php-build
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+
 
 
 # Copiar vendors generados
