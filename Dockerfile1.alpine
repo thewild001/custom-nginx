@@ -167,9 +167,9 @@ COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 
-USER root
 # Crear directorios necesarios
-RUN mkdir -p /var/log/supervisor 
+RUN mkdir -p /var/log/supervisor ${APP_HOME} ${COMPOSER_DEPS_PATH} && \
+    chown -R nobody:nobody /var/log/supervisor
 
 WORKDIR ${APP_HOME}
 
