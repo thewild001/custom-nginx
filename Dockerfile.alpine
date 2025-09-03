@@ -1,5 +1,6 @@
 # Etapa 1: PHP-FPM para Symfony 2.7.16 (Alpine)
-FROM php:7.1-fpm-alpine AS php-build
+#FROM php:7.1-fpm-alpine AS php-build
+FROM php:7.1-fpm-alpine3.16 AS php-build
 
 ENV APP_HOME=/var/www/html \
     COMPOSER_DEPS_PATH=/opt/vendor
@@ -107,7 +108,8 @@ RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plu
 WORKDIR ${APP_HOME}
 
 # Etapa 2: OpenResty + PHP-FPM (Alpine)
-FROM openresty/openresty:alpine
+#FROM openresty/openresty:alpine
+FROM openresty/openresty:alpine3.16
 
 ENV APP_HOME=/usr/local/openresty/nginx/html \
     COMPOSER_DEPS_PATH=/opt/vendor
@@ -132,6 +134,9 @@ COPY --from=php-build /usr/local/lib /usr/local/lib
 # Copiar SOLO las extensiones y configuración de PHP necesarias desde php-build
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
+# dentro del stage 2
+COPY --from=php-build /lib/ld-musl-*.so.1 /lib/
+COPY --from=php-build /usr/lib/lib*.so* /usr/lib/
 
 
 # Copiar vendors generados
