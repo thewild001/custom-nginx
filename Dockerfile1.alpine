@@ -163,24 +163,13 @@ COPY --from=php-build /usr/lib/libssl.so* /usr/lib/
 # Copiar vendors de Composer
 COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
 
-# Crear directorios necesarios
-RUN mkdir -p \
-    /var/log/supervisor \
-    /var/run/supervisor \
-    /var/log/php \
-    /var/run \
-    ${APP_HOME} \
-    ${APP_HOME}/app/cache \
-    ${APP_HOME}/app/logs && \
-    # Ajustar permisos
-    chown -R nobody:nobody /var/log /usr/local/openresty/nginx ${APP_HOME} && \
-    chmod 755 /var/log/supervisor /var/run/supervisor
-
-
 # Copiar configuración personalizada (estos archivos deben existir)
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 
+USER root
+# Crear directorios necesarios
+RUN mkdir -p /var/log/supervisor 
 
 WORKDIR ${APP_HOME}
 
