@@ -1,129 +1,245 @@
-# Usar Alpine 3.12 específico con repositorios funcionales
-FROM alpine:3.12.12
+# Etapa 1: PHP-FPM para Symfony 2.7.16 (Alpine)
+FROM php:7.1-fpm-alpine AS php-build
 
-# Configurar repositorios archivados más estables
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/v3.12/main" > /etc/apk/repositories && \
-    echo "http://dl-cdn.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories && \
-    echo "http://archive.alpinelinux.org/alpine/v3.12/main" >> /etc/apk/repositories && \
-    echo "http://archive.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories
-
-# Variables de entorno
-ENV APP_HOME=/usr/local/openresty/nginx/html/SIGIES \
+ENV APP_HOME=/var/www/html \
     COMPOSER_DEPS_PATH=/opt/vendor
 
-# Actualizar índices de paquetes
-RUN apk update || true
+# Instalar dependencias del sistema para Alpine
+RUN apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        freetype-dev \
+        libjpeg-turbo-dev \
+        libpng-dev \
+        libzip-dev \
+        icu-dev \
+        libxml2-dev \
+        postgresql-dev \
+        openldap-dev \
+        imap-dev \
+        oniguruma-dev \
+        libxslt-dev \
+    && apk add --no-cache \
+        openssh-client \
+        gettext \
+        nano \
+        gnupg \
+        rsync \
+        git \
+        unzip \
+        wget \
+        curl \
+        freetype \
+        libjpeg-turbo \
+        libpng \
+        libzip \
+        icu \
+        libxml2 \
+        postgresql-libs \
+        openldap \
+        c-client \
+        oniguruma \
+        libxslt \
+        ca-certificates
 
-# Instalar dependencias básicas primero
-RUN apk add --no-cache \
-    unzip \
-    git \
-    nano \
-    gettext \
-    rsync \
-    wget \
-    curl \
-    openssh-client \
-    netcat-openbsd
+# Instalar php-extension-installer
+COPY --from=mlocati/php-extension-installer:2.9.6 /usr/bin/install-php-extensions /usr/local/bin/
 
-# Verificar disponibilidad de paquetes PHP71 antes de instalar
-RUN apk search php71 | head -5 || echo "Searching for PHP packages..."
+# Configurar extensiones antes de instalar
+RUN docker-php-ext-configure gd \
+    && docker-php-ext-configure imap \
+    && docker-php-ext-configure ldap
 
-# Instalar PHP 7.1 y extensiones básicas con retry
-RUN apk add --no-cache \
-    php71 \
-    php71-fpm \
-    php71-opcache \
-    php71-mbstring \
-    php71-curl \
-    php71-openssl || \
-    # Fallback: intentar con paquetes individuales
-    (apk add --no-cache php71 && \
-     apk add --no-cache php71-fpm && \
-     apk add --no-cache php71-opcache && \
-     apk add --no-cache php71-mbstring && \
-     apk add --no-cache php71-curl && \
-     apk add --no-cache php71-openssl)
+# Instalar extensiones PHP adicionales
+RUN install-php-extensions \
+    pdo_pgsql \
+    pgsql \
+    exif \
+    pcntl \
+    bcmath \
+    ldap \
+    imap \
+    gd \
+    intl \
+    zip \
+    xsl \
+    opcache \
+    dom \
+    simplexml \
+    xml \
+    xmlreader \
+    xmlwriter
 
-RUN apk add --no-cache \
-    php71-pdo_pgsql \
-    php71-pgsql \
-    php71-dom \
-    php71-simplexml \
-    php71-xml \
-    php71-xmlreader \
-    php71-xmlwriter
+# Configurar OPcache para producción
+RUN echo "[opcache]" > /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=16" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.revalidate_freq=0" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
-RUN apk add --no-cache \
-    php71-exif \
-    php71-pcntl \
-    php71-bcmath \
-    php71-gd \
-    php71-intl \
-    php71-zip \
-    php71-xsl \
-    php71-tokenizer || echo "Some PHP extensions may not be available"
+# Configurar PHP para Symfony 2.7
+RUN echo "[PHP]" > /usr/local/etc/php/conf.d/symfony.ini \
+    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/symfony.ini \
+    && echo "max_execution_time = 60" >> /usr/local/etc/php/conf.d/symfony.ini \
+    && echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/symfony.ini \
+    && echo "post_max_size = 20M" >> /usr/local/etc/php/conf.d/symfony.ini \
+    && echo "date.timezone = UTC" >> /usr/local/etc/php/conf.d/symfony.ini \
+    && echo "expose_php = Off" >> /usr/local/etc/php/conf.d/symfony.ini
 
-# Instalar servicios adicionales
-RUN apk add --no-cache \
-    supervisor \
-    redis || echo "Redis installation failed, continuing"
+# Instalar Composer LTS
+COPY --from=composer:lts /usr/bin/composer /usr/local/bin/composer
 
-# Intentar instalar OpenResty (puede fallar en archivos)
-RUN apk add --no-cache \
-    openresty \
-    openresty-resty \
-    openresty-openssl || \
-    (echo "OpenResty not available in archives, installing nginx" && \
-     apk add --no-cache nginx)
-
-# Instalar LDAP e IMAP (suelen fallar)
-RUN apk add --no-cache php71-ldap php71-imap || echo "LDAP/IMAP extensions not available"
-
-# Configurar OPcache
-RUN echo "[opcache]" > /etc/php71/conf.d/opcache.ini && \
-    echo "zend_extension=opcache.so" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.enable=1" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.enable_cli=1" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.memory_consumption=128" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.interned_strings_buffer=8" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.max_accelerated_files=4000" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.revalidate_freq=60" >> /etc/php71/conf.d/opcache.ini && \
-    echo "opcache.validate_timestamps=1" >> /etc/php71/conf.d/opcache.ini
-
-# Crear enlaces simbólicos para compatibilidad
-RUN ln -sf /usr/bin/php71 /usr/bin/php && \
-    ln -sf /usr/sbin/php-fpm71 /usr/sbin/php-fpm
-
-# Crear directorios necesarios
-RUN mkdir -p /var/log/supervisor ${APP_HOME} ${COMPOSER_DEPS_PATH} && \
-    chown -R nobody:nobody /var/log/supervisor
-
-# Instalar Composer LTS (versión compatible con PHP 7.1)
-RUN wget https://getcomposer.org/installer -O /tmp/composer-setup.php && \
-    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --version=2.2.22 && \
-    rm /tmp/composer-setup.php
-
-# Preparar directorios para la aplicación
+# Preparar directorios
+RUN mkdir -p ${APP_HOME} ${COMPOSER_DEPS_PATH}
 WORKDIR ${COMPOSER_DEPS_PATH}
 
-# Copiar composer.json
+# Copiar archivos de composición
 COPY composer.json ./
 
 # Instalar dependencias de Composer
-RUN composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
-    composer config --no-plugins allow-plugins.ocramius/package-versions false && \
-    COMPOSER_ALLOW_SUPERUSER=1 composer install -q --no-scripts --no-progress --prefer-dist --ignore-platform-reqs --optimize-autoloader
+RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false \
+    && /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false \
+    && COMPOSER_ALLOW_SUPERUSER=1 /usr/local/bin/composer install \
+        --no-ansi \
+        --no-interaction \
+        --no-scripts \
+        --no-progress \
+        --prefer-dist \
+        --ignore-platform-reqs \
+        --optimize-autoloader \
+        --classmap-authoritative \
+        --no-dev
 
-# Copiar configuración personalizada
+# Limpiar dependencias de build al final
+RUN apk del .build-deps
+
+WORKDIR ${APP_HOME}
+
+# ============================================================================
+# Etapa 2: OpenResty + PHP-FPM (Imagen final optimizada)
+# ============================================================================
+FROM openresty/openresty:alpine
+
+ENV APP_HOME=/usr/local/openresty/nginx/html \
+    COMPOSER_DEPS_PATH=/opt/vendor \
+    SYMFONY_ENV=prod \
+    SYMFONY_DEBUG=0 \
+    REDIS_HOST=redis \
+    REDIS_PORT=6379 \
+    REDIS_PASSWORD=""
+
+# Instalar dependencias runtime necesarias para PHP y servicios
+RUN apk add --no-cache \
+    # Dependencias runtime de PHP
+    freetype \
+    libjpeg-turbo \
+    libpng \
+    libzip \
+    icu \
+    libxml2 \
+    postgresql-libs \
+    openldap \
+    c-client \
+    oniguruma \
+    libxslt \
+    # Herramientas del sistema
+    supervisor \
+    netcat-openbsd \
+    curl \
+    ca-certificates
+
+# Copiar PHP completo desde el stage de build
+COPY --from=php-build /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
+COPY --from=php-build /usr/local/bin/php /usr/local/bin/php
+COPY --from=php-build /usr/local/bin/php-config /usr/local/bin/php-config
+COPY --from=php-build /usr/local/bin/phpize /usr/local/bin/phpize
+COPY --from=php-build /usr/local/bin/composer /usr/local/bin/composer
+
+# Copiar librerías y extensiones de PHP
+COPY --from=php-build /usr/local/lib/php /usr/local/lib/php
+COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+
+# Copiar dependencias compartidas críticas (solo las necesarias)
+COPY --from=php-build /lib/ld-musl-*.so.1 /lib/
+COPY --from=php-build /usr/lib/libcrypto.so* /usr/lib/
+COPY --from=php-build /usr/lib/libssl.so* /usr/lib/
+
+# Copiar vendors de Composer
+COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
+
+# Configurar PHP-FPM para alta performance
+RUN echo "[global]" > /usr/local/etc/php-fpm.conf \
+    && echo "pid = /var/run/php-fpm.pid" >> /usr/local/etc/php-fpm.conf \
+    && echo "error_log = /var/log/php-fpm.log" >> /usr/local/etc/php-fpm.conf \
+    && echo "daemonize = no" >> /usr/local/etc/php-fpm.conf \
+    && echo "" >> /usr/local/etc/php-fpm.conf \
+    && echo "[www]" >> /usr/local/etc/php-fpm.conf \
+    && echo "user = nobody" >> /usr/local/etc/php-fpm.conf \
+    && echo "group = nobody" >> /usr/local/etc/php-fpm.conf \
+    && echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.conf \
+    && echo "listen.owner = nobody" >> /usr/local/etc/php-fpm.conf \
+    && echo "listen.group = nobody" >> /usr/local/etc/php-fpm.conf \
+    && echo "pm = dynamic" >> /usr/local/etc/php-fpm.conf \
+    && echo "pm.max_children = 20" >> /usr/local/etc/php-fpm.conf \
+    && echo "pm.start_servers = 2" >> /usr/local/etc/php-fpm.conf \
+    && echo "pm.min_spare_servers = 1" >> /usr/local/etc/php-fpm.conf \
+    && echo "pm.max_spare_servers = 3" >> /usr/local/etc/php-fpm.conf \
+    && echo "pm.max_requests = 1000" >> /usr/local/etc/php-fpm.conf \
+    && echo "request_terminate_timeout = 60s" >> /usr/local/etc/php-fpm.conf \
+    && echo "catch_workers_output = yes" >> /usr/local/etc/php-fpm.conf \
+    && echo "decorate_workers_output = no" >> /usr/local/etc/php-fpm.conf
+
+# Crear directorios necesarios
+RUN mkdir -p \
+    /var/log/supervisor \
+    /var/run/supervisor \
+    /var/log/php \
+    /var/run \
+    ${APP_HOME} \
+    ${APP_HOME}/app/cache \
+    ${APP_HOME}/app/logs && \
+    # Ajustar permisos
+    chown -R nobody:nobody /var/log /usr/local/openresty/nginx ${APP_HOME} && \
+    chmod 755 /var/log/supervisor /var/run/supervisor
+
+# Configuración de supervisord optimizada
+RUN echo "[supervisord]" > /etc/supervisord.conf \
+    && echo "nodaemon=true" >> /etc/supervisord.conf \
+    && echo "logfile=/var/log/supervisor/supervisord.log" >> /etc/supervisord.conf \
+    && echo "pidfile=/var/run/supervisor/supervisord.pid" >> /etc/supervisord.conf \
+    && echo "user=root" >> /etc/supervisord.conf \
+    && echo "" >> /etc/supervisord.conf \
+    && echo "[program:openresty]" >> /etc/supervisord.conf \
+    && echo "command=/usr/local/openresty/bin/openresty -g 'daemon off;'" >> /etc/supervisord.conf \
+    && echo "autostart=true" >> /etc/supervisord.conf \
+    && echo "autorestart=true" >> /etc/supervisord.conf \
+    && echo "stdout_logfile=/var/log/supervisor/openresty.log" >> /etc/supervisord.conf \
+    && echo "stderr_logfile=/var/log/supervisor/openresty_error.log" >> /etc/supervisord.conf \
+    && echo "user=nobody" >> /etc/supervisord.conf \
+    && echo "" >> /etc/supervisord.conf \
+    && echo "[program:php-fpm]" >> /etc/supervisord.conf \
+    && echo "command=/usr/local/sbin/php-fpm -F" >> /etc/supervisord.conf \
+    && echo "autostart=true" >> /etc/supervisord.conf \
+    && echo "autorestart=true" >> /etc/supervisord.conf \
+    && echo "stdout_logfile=/var/log/supervisor/php-fpm.log" >> /etc/supervisord.conf \
+    && echo "stderr_logfile=/var/log/supervisor/php-fpm_error.log" >> /etc/supervisord.conf \
+    && echo "user=nobody" >> /etc/supervisord.conf
+
+# Copiar configuración personalizada (estos archivos deben existir)
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
-COPY supervisord.conf /etc/supervisord.conf
 
 
 WORKDIR ${APP_HOME}
 
 EXPOSE 80 9000
 
-# Comando por defecto comentado para debugging
-# CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+# Health check
+
+
+# Comando por defecto para iniciar supervisord
+#CMD ["supervisord", "-c", "/etc/supervisord.conf"]
