@@ -132,6 +132,16 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar SOLO las extensiones y configuración de PHP necesarias
+#COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
+#COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+
+# Copiar binarios de PHP y PHP-FPM desde la primera etapa
+COPY --from=php-build /usr/sbin/php-fpm7.1 /usr/sbin/php-fpm
+COPY --from=php-build /usr/bin/php /usr/bin/php
+COPY --from=php-build /usr/bin/phpize /usr/bin/phpize
+COPY --from=php-build /usr/bin/php-config /usr/bin/php-config
+
+# Copiar extensiones y configuración de PHP
 COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
