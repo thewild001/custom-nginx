@@ -146,8 +146,8 @@ COPY supervisord.conf /etc/supervisord.conf
 USER root
 
 # Crear directorios de logs para Supervisor (con permisos correctos)
-RUN mkdir -p /var/log/supervisor; \
-    chown -R www-data:www-data /var/log/supervisor
+RUN mkdir -p /var/log/supervisor
+
 
 WORKDIR ${APP_HOME}
 
