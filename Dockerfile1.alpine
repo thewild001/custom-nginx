@@ -169,8 +169,11 @@ COPY lua/ /usr/local/openresty/nginx/conf/lua/
 
 #USER root
 # Crear directorios necesarios
-#RUN mkdir -p /var/log/supervisor && \
-#    chown -R nobody:nobody /var/log/supervisor
+RUN set -eux; \
+    mkdir -p /var/log/supervisor; \
+    addgroup -g 82 www-data; \
+    adduser -u 82 -D -s /bin/sh -G www-data www-data; \
+    chown -R www-data:www-data /var/log/supervisor
 
 WORKDIR ${APP_HOME}
 
