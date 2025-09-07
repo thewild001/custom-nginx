@@ -2,8 +2,8 @@
 FROM php:7.1-fpm-buster AS php-build
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    APP_HOME=/var/www/html \
-    COMPOSER_DEPS_PATH=/opt/vendor
+    APP_HOME=/usr/local/openresty/nginx/html \
+    COMPOSER_VENDOR_DIR=/opt/vendor
 
 # Repositorios legacy (exactos)
 RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian buster main" > /etc/apt/sources.list && \
@@ -165,14 +165,28 @@ USER root
 RUN mkdir -p /var/log/supervisor && \
     chown -R nobody:nogroup /var/log/supervisor
 
+
 # ----------------------------------------------------------
-# Verificación final: PHP y PHP-FPM deben existir
+# 1.  Copiar binarios PHP desde la etapa php-build
+# ----------------------------------------------------------
+COPY --from=php-build /usr/local/bin/php         /usr/local/bin/php
+COPY --from=php-build /usr/local/sbin/php-fpm    /usr/local/sbin/php-fpm
+
+# ----------------------------------------------------------
+# 2.  Enlaces para que estén en PATH por defecto
+# ----------------------------------------------------------
+RUN ln -sf /usr/local/bin/php      /usr/bin/php && \
+    ln -sf /usr/local/sbin/php-fpm /usr/sbin/php-fpm
+
+# ----------------------------------------------------------
+# 3.  Verificación final (fallará si falta algo)
 # ----------------------------------------------------------
 RUN set -eux; \
     echo "=== Verificando binarios ==="; \
     command -v php && php -v; \
     command -v php-fpm && php-fpm -v; \
     echo "=== OK ==="
+
 
 WORKDIR ${APP_HOME}
 
