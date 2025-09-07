@@ -135,15 +135,18 @@ RUN apt-get update && \
 #COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 #COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
-# Copiar binarios de PHP y PHP-FPM desde la primera etapa
-COPY --from=php-build /usr/sbin/php-fpm7.1 /usr/sbin/php-fpm
-COPY --from=php-build /usr/bin/php /usr/bin/php
-COPY --from=php-build /usr/bin/phpize /usr/bin/phpize
-COPY --from=php-build /usr/bin/php-config /usr/bin/php-config
+# Copiar PHP, PHP-FPM y utilidades desde la 1ª etapa
+COPY --from=php-build /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
+COPY --from=php-build /usr/local/bin/php /usr/local/bin/php
+COPY --from=php-build /usr/local/bin/phpize /usr/local/bin/phpize
+COPY --from=php-build /usr/local/bin/php-config /usr/local/bin/php-config
 
 # Copiar extensiones y configuración de PHP
 COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
+
+RUN ln -s /usr/local/bin/php /usr/bin/php && \
+    ln -s /usr/local/sbin/php-fpm /usr/sbin/php-fpm
 
 # Copiar vendors generados
 COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
