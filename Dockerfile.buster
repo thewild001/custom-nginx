@@ -1,15 +1,6 @@
 # Etapa 1: PHP-FPM para Symfony 2.7.16 (Debian Buster)
 FROM php:7.1-fpm-buster AS php-build
 
-# ----------------------------------------------------------
-# Descubrir rutas reales de PHP y PHP-FPM
-# ----------------------------------------------------------
-RUN set -eux; \
-    echo "=== Inside php-build ==="; \
-    find /usr -name "php" -type f -executable 2>/dev/null | head -5; \
-    find /usr -name "php-fpm*" -type f -executable 2>/dev/null | head -5; \
-    echo "=== End ==="
-
 ENV DEBIAN_FRONTEND=noninteractive \
     APP_HOME=/usr/local/openresty/nginx/html \
     COMPOSER_VENDOR_DIR=/opt/vendor
@@ -156,11 +147,6 @@ RUN apt-get update && \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar SOLO las extensiones y configuración de PHP necesarias
-#COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
-#COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
-
-
 # ----------------------------------------------------------
 # 1.  Copiar binarios PHP desde la etapa php-build
 # ----------------------------------------------------------
@@ -181,17 +167,6 @@ COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 # ----------------------------------------------------------
 RUN ln -sf /usr/local/bin/php      /usr/bin/php && \
     ln -sf /usr/local/sbin/php-fpm /usr/sbin/php-fpm
-
-
-# ----------------------------------------------------------
-# 3.  Verificación final (fallará si falta algo)
-# ----------------------------------------------------------
-RUN set -eux; \
-    echo "=== Verificando binarios ==="; \
-    command -v php && php -v; \
-    command -v php-fpm && php-fpm -v; \
-    echo "=== OK ==="
-
 
 # Copiar vendors generados
 COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
@@ -214,4 +189,3 @@ EXPOSE 80 9000
 
 # Asegurar que OpenResty se ejecute en foreground
 #CMD ["openresty", "-g", "daemon off;"]
-
