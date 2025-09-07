@@ -149,7 +149,8 @@ RUN apt-get update && \
     libicu63 \
     libc-client2007e \
     libssl1.1 \
-    libedit2 \          
+    libedit2 \
+    libncurses6 \
     unzip \
     curl \
     git \
