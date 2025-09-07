@@ -162,6 +162,15 @@ USER root
 RUN mkdir -p /var/log/supervisor && \
     chown -R nobody:nogroup /var/log/supervisor
 
+# ----------------------------------------------------------
+# Verificación final: PHP y PHP-FPM deben existir
+# ----------------------------------------------------------
+RUN set -eux; \
+    echo "=== Verificando binarios ==="; \
+    command -v php && php -v; \
+    command -v php-fpm && php-fpm -v; \
+    echo "=== OK ==="
+
 WORKDIR ${APP_HOME}
 
 EXPOSE 80 9000
