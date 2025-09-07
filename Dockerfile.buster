@@ -161,7 +161,7 @@ RUN mkdir -p /var/log/supervisor && \
 
 WORKDIR ${APP_HOME}
 
-EXPOSE 80
+EXPOSE 80 9000
 
 # Asegurar que OpenResty se ejecute en foreground
 #CMD ["openresty", "-g", "daemon off;"]
