@@ -145,8 +145,11 @@ COPY --from=php-build /usr/local/bin/php-config /usr/local/bin/php-config
 COPY --from=php-build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=php-build /usr/local/etc/php /usr/local/etc/php
 
-RUN ln -s /usr/local/bin/php /usr/bin/php && \
-    ln -s /usr/local/sbin/php-fpm /usr/sbin/php-fpm
+# ----------------------------------------------------------
+# 2.  Enlaces para que estén en PATH por defecto
+# ----------------------------------------------------------
+RUN ln -sf /usr/local/bin/php         /usr/bin/php && \
+    ln -sf /usr/local/sbin/php-fpm    /usr/sbin/php-fpm
 
 # Copiar vendors generados
 COPY --from=php-build ${COMPOSER_DEPS_PATH} ${COMPOSER_DEPS_PATH}
