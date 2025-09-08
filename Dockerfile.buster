@@ -151,7 +151,9 @@ RUN apt-get update && \
     unzip \
     wget \
     curl \
-    libx11-6 libexslt1-dev libxslt1-dev \
+    libx11-6 \
+    libexslt1-dev \
+    libxslt1-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
