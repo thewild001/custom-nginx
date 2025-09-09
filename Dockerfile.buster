@@ -154,6 +154,7 @@ RUN apt-get update && \
     ca-certificates \
     libx11-6 \
     libxslt1.1 \
+    libxpm4 \
     && rm -rf /var/lib/apt/lists/*
 
 
