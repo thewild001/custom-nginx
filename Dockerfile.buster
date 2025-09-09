@@ -152,6 +152,8 @@ RUN apt-get update && \
     wget \
     curl \
     ca-certificates \
+    libx11-6 \
+    libxslt1.1 \
     && rm -rf /var/lib/apt/lists/*
 
 
