@@ -165,6 +165,7 @@ RUN apt-get update && \
 # ----------------------------------------------------------
 COPY --from=php-build /usr/local/bin/php         /usr/local/bin/php
 COPY --from=php-build /usr/local/sbin/php-fpm    /usr/local/sbin/php-fpm
+COPY --from=php-build /usr/local/bin/composer    /usr/local/bin/composer
 
 # Copiar utilidades desde la 1ª etapa
 COPY --from=php-build /usr/local/bin/phpize /usr/local/bin/phpize
