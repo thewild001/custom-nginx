@@ -156,6 +156,7 @@ RUN apt-get update && \
     libx11-6 \
     libxslt1.1 \
     libxpm4 \
+    libwebp6 \ 
     && rm -rf /var/lib/apt/lists/*
 
 
