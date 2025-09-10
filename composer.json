@@ -132,13 +132,7 @@
     "mockery/mockery":"0.9.9",
     "mikey179/vfsstream":"v1.6.4",
     "fzaninotto/faker": "v1.6.0",
-    "willdurand/faker-bundle": "1.3.0",
-    "raulfraile/ladybug-bundle": "v1.0.6",
-    "raulfraile/ladybug": "v1.0.13",
-    "raulfraile/ladybug-installer": "v1.0.1",
-    "raulfraile/ladybug-plugin-extra": "v1.0.1",
-    "raulfraile/ladybug-plugin-symfony2": "v1.0.1",
-    "raulfraile/ladybug-theme-modern": "v1.0.7"
+    "willdurand/faker-bundle": "1.3.0"
   },
   "scripts": {
     "post-root-package-install": [
