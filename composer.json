@@ -163,6 +163,7 @@
     "bin-dir": "bin",
     "secure-http": false,
     "allow-plugins": {
+            "ocramius/package-versions": false,
             "raulfraile/ladybug-installer": false
     }
   },
