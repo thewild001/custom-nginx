@@ -71,7 +71,7 @@ jobs:
           push: true
           tags: ghcr.io/thewild001/php7.1-fpm-openresty-buster:latest
           #tags: ${{ secrets.DOCKER_HUB_USERNAME }}/php7.1-fpm-openresty-buster:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          #cache-from: type=local,src=/tmp/.buildx-cache
+          #cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
           
