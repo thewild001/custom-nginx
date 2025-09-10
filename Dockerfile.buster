@@ -105,6 +105,8 @@ WORKDIR ${COMPOSER_DEPS_PATH}
 # Copiar archivos de composición
 COPY composer.json ./
 
+RUN /usr/local/bin/composer update --no-dev --ignore-platform-reqs
+
 # Instalar dependencias de Composer
 RUN php -d memory_limit=-1 /usr/local/bin/composer config --no-plugins allow-plugins.raulfraile/ladybug-installer false && \
     /usr/local/bin/composer config --no-plugins allow-plugins.ocramius/package-versions false && \
