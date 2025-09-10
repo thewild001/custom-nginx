@@ -161,7 +161,10 @@
   },
   "config": {
     "bin-dir": "bin",
-    "secure-http": false
+    "secure-http": false,
+    "allow-plugins": {
+            "raulfraile/ladybug-installer": false
+    }
   },
   "extra": {
     "symfony-app-dir": "app",
