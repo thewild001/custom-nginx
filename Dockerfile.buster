@@ -193,7 +193,7 @@ COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY lua/ /usr/local/openresty/nginx/conf/lua/
 COPY supervisord.conf /etc/supervisord.conf
 
-USER root
+#USER root
 
 # Crear directorios de logs para Supervisor (con permisos correctos)
 RUN mkdir -p /var/log/supervisor && \
